@@ -7,7 +7,7 @@ WORKDIR /code
 
 COPY ./requirements.txt /code/requirements.txt
 COPY ./views /code/views
-COPY ./YuanAPI.py /code/YuanAPI.py
+COPY ./NewYuan.py /code/NewYuan.py
 
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
@@ -17,4 +17,4 @@ RUN chmod 777 /code/
 RUN mkdir /code/.cache
 RUN chmod 777 /code/.cache
 
-CMD ["python3", "YuanAPI.py"]
+CMD ["uvicorn", "NewYuan:app", "--host", "0.0.0.0", "--port", "7860"]
