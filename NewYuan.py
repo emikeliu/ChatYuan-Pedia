@@ -45,9 +45,11 @@ classifier = pipeline("token-classification", model=xlm_model, tokenizer=xlm_tok
 print("Model Loaded")
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="./static"), name="static")
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
-
+@app.get('/')
+def index() -> FileResponse:
+    return FileResponse(path="/code/static/index.html", media_type="text/html")
 
 @app.post('/api/chat_stream')
 async def api_chat_stream(data: PostData):
