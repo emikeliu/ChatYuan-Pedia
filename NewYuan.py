@@ -48,7 +48,7 @@ print("Model Loaded")
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static/static", html=True), name="static")
 
-@app.post('/api/chat_stream/')
+@app.post('/api/chat_stream')
 def api_chat_stream(data: PostData):
     #with request.
     #print(request)
@@ -112,7 +112,7 @@ def api_chat_stream(data: PostData):
     return ret
 
 user_data=['模型加载中','','']
-@app.get('/api/chat_now/')
+@app.get('/api/chat_now')
 def api_chat_now():
     return '当前用户：'+user_data[0]+"\n问题："+user_data[1]+"\n回答："+user_data[2]+''
 
