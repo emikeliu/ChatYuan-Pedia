@@ -6,7 +6,7 @@ FROM python:3.10
 WORKDIR /code
 
 COPY ./requirements.txt /code/requirements.txt
-COPY ./views /code/views
+COPY ./static /code/static
 COPY ./NewYuan.py /code/NewYuan.py
 
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
@@ -16,5 +16,5 @@ ENV TRANSFORMERS_CACHE /code/.cache
 RUN chmod 777 /code/
 RUN mkdir /code/.cache
 RUN chmod 777 /code/.cache
-
+RUN cd /code/
 CMD ["uvicorn", "NewYuan:app", "--host", "0.0.0.0", "--port", "7860"]
