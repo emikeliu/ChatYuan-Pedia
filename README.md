@@ -1,7 +1,7 @@
 ---
-title: BaiKe Yuan
-emoji: 📉
-colorFrom: pink
+title: BaiKe ChatYuan
+emoji: 😅
+colorFrom: green
 colorTo: pink
 sdk: docker
 pinned: false

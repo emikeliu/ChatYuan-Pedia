@@ -1,0 +1,10 @@
+fastapi
+pydantic
+transformers
+jieba
+whoosh
+requests
+torch
+bs4
+sentencepiece
+paste
