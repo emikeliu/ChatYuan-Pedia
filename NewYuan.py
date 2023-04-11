@@ -46,14 +46,10 @@ classifier = pipeline("token-classification", model=xlm_model, tokenizer=xlm_tok
 print("Model Loaded")
 
 app = FastAPI()
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+app.mount("/static", StaticFiles(directory="static/static", html=True), name="static")
 
-@app.get('/')
-def index() -> FileResponse:
-    return FileResponse(path="/code/static/index.html", media_type="text/html")
-
-@app.post('/api/chat_stream')
-async def api_chat_stream(data: PostData):
+@app.post('/api/chat_stream/')
+def api_chat_stream(data: PostData):
     #with request.
     #print(request)
     ret = []
@@ -91,12 +87,13 @@ async def api_chat_stream(data: PostData):
         response_d = []
         for i in keywords:
             #ff["https://baike.baidu.com/item/{}".format(i['word']))
-            time.sleep(0.5)
-            ff = requests.get("https://baike.baidu.com/item/{}".format(i['word']),headers={ 'User-Agent':'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.103 Safari/537.36'})
+            ff = requests.get("https://baike.baidu.com/item/{}".format(i['word']),headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36 Edg/83.0.478.50','Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9'})
+            print(ff.text)
             soup = BeautifulSoup(ff.text)
             dest = soup.find_all(class_="lemma-summary")
             if len(dest)>0:
                 response_d.append(re.sub(r"\[[0-9]*-[0-9]*\]","",re.sub(r"\[[0-9]*\]","",dest[0].get_text())))
+            #time.sleep(0.2)
         output_sources = ['{}. [百度百科-{}]({})'.format(i+1,keywords[i]['word'],"https://baike.baidu.com/item/{}".format(keywords[i]['word'])) for i in range(len(response_d))]
         results ='\n'.join([i for i in response_d])
         if(len(response_d) != 0):
@@ -115,9 +112,14 @@ async def api_chat_stream(data: PostData):
     return ret
 
 user_data=['模型加载中','','']
-@app.get('/api/chat_now')
+@app.get('/api/chat_now/')
 def api_chat_now():
     return '当前用户：'+user_data[0]+"\n问题："+user_data[1]+"\n回答："+user_data[2]+''
+
+@app.get('/')
+def index() -> FileResponse:
+    return FileResponse(path="./static/index.html", media_type="text/html")
+
 
 
 
