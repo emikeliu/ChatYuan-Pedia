@@ -8,3 +8,4 @@ torch
 bs4
 sentencepiece
 paste
+uvicorn
