@@ -5,13 +5,42 @@ from pydantic import BaseModel
 from typing import List
 import json
 import datetime
-import requests
 from bs4 import BeautifulSoup
 import time
 from transformers import T5Tokenizer, T5ForConditionalGeneration, pipeline, AutoTokenizer, AutoModelForTokenClassification
 import torch
 import re
+import argparse
+import uvicorn
+drv = None
+args = {}
+browser = False
+if __name__ == "__main__" :
+    uvicorn.run("NewYuan:app")
+    exit(0)
+parser = argparse.ArgumentParser()
+group = parser.add_mutually_exclusive_group()
+group.add_argument("-F", "--firefox", help="使用 Firefox 来爬取百度百科", action="store_true")
+group.add_argument("-C", "--chromium", help="使用 Chromium 来爬取百度百科", action="store_true")
+group.add_argument("-E", "--edge", help="使用 Edge 来爬取百度百科", action="store_true")
+group.add_argument("-R", "--requests", help="使用 requests 来爬取百度百科", action="store_true")
+args = parser.parse_args()
 
+if args.firefox:
+    from selenium import webdriver
+    from selenium.webdriver.common.by import By
+    drv = webdriver.Firefox()
+    browser = True
+elif args.chromium:
+    from selenium import webdriver
+    from selenium.webdriver.common.by import By
+    drv = webdriver.Chrome()
+    browser = True
+elif args.edge:
+    from selenium import webdriver
+    from selenium.webdriver.common.by import By
+    drv = webdriver.ChromiumEdge()
+    browser = True
 class Content(BaseModel):
     content: str
     role: str
@@ -29,9 +58,10 @@ class PostData(BaseModel):
 xlm_model = None
 xlm_tokenizer = None
 classifier = None
-model=None
-tokenizer=None
-device=None
+model = None
+tokenizer = None
+device = None
+
 
 print("Loading models please wait... Attention: This may take a long time")
 print("T5Tokenizer")
@@ -50,8 +80,7 @@ app.mount("/static", StaticFiles(directory="static/static", html=True), name="st
 
 @app.post('/api/chat_stream')
 def api_chat_stream(data: PostData):
-    #with request.
-    #print(request)
+    global browser
     ret = []
     prompt = data.prompt
     if prompt == None:
@@ -69,7 +98,6 @@ def api_chat_stream(data: PostData):
     history = data.history
     history_formatted = ""
     if history is not None:
-        #history_formatted = []
         tmp = []
         for i, old_chat in enumerate(history):
             if len(tmp) == 0 and old_chat.role == "user":
@@ -79,21 +107,25 @@ def api_chat_stream(data: PostData):
             else:
                 continue
     response=history_formatted
-    global 当前用户
+
     footer = ''
     if use_pedia:
         keywords = classifier(prompt)
         print(keywords)
         response_d = []
         for i in keywords:
-            #ff["https://baike.baidu.com/item/{}".format(i['word']))
-            ff = requests.get("https://baike.baidu.com/item/{}".format(i['word']),headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36 Edg/83.0.478.50','Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9'})
-            print(ff.text)
-            soup = BeautifulSoup(ff.text)
-            dest = soup.find_all(class_="lemma-summary")
+            if not browser:
+                import requests
+                ff = requests.get("https://baike.baidu.com/item/{}".format(i['word']),headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36 Edg/83.0.478.50','Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9'})
+                soup = BeautifulSoup(ff.text)
+                dest = soup.find_all(class_="lemma-summary")
+                dest = list(map(lambda x: x.get_text(), dest))
+            else:
+                drv.get("https://baike.baidu.com/item/{}".format(i['word']))
+                result = drv.find_element(By.CLASS_NAME,"lemma-summary")
+                dest = [result.text]
             if len(dest)>0:
-                response_d.append(re.sub(r"\[[0-9]*-[0-9]*\]","",re.sub(r"\[[0-9]*\]","",dest[0].get_text())))
-            #time.sleep(0.2)
+                response_d.append(re.sub(r"\[[0-9]*-[0-9]*\]","",re.sub(r"\[[0-9]*\]","",dest[0])))
         output_sources = ['{}. [百度百科-{}]({})'.format(i+1,keywords[i]['word'],"https://baike.baidu.com/item/{}".format(keywords[i]['word'])) for i in range(len(response_d))]
         results ='\n'.join([i for i in response_d])
         if(len(response_d) != 0):
@@ -121,8 +153,6 @@ def index() -> FileResponse:
     return FileResponse(path="./static/index.html", media_type="text/html")
 
 
-
-
 def preprocess(text):
   text = text.replace("\n", "\\n").replace("\t", "\\t")
   return text
@@ -131,8 +161,6 @@ def postprocess(text):
   return text.replace("\\n", "\n").replace("\\t", "\t").replace('%20','  ')
 
 def answer(text, sample=True, top_p=1, temperature=0.7):
-  '''sample：是否抽样。生成任务，可以设置为True;
-  top_p：0-1之间，生成的内容越多样'''
   text = preprocess(text)
   encoding = tokenizer(text=[text], truncation=True, padding=True, max_length=8192, return_tensors="pt").to(device)
   if not sample:
@@ -143,11 +171,3 @@ def answer(text, sample=True, top_p=1, temperature=0.7):
   return postprocess(out_text[0])
 
 
-
-
-# bottle.debug(True)
-#bottle.run(server='paste',port=7860,quiet=True)
-
-if __name__ == '__main__':
-
-    app.run(port=7860)
